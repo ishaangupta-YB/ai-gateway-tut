@@ -2,6 +2,8 @@
 
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { ModeToggle } from '@/components/mode-toggle';
 
 interface NavbarProps {
   onSettingsClick: () => void;
@@ -13,9 +15,11 @@ const Navbar = ({ onSettingsClick }: NavbarProps) => {
       <div className="max-w-full mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-semibold">AI Gateway</h1>
+            <SidebarTrigger />
+            <h1 className="text-xl font-semibold">AI Pasta</h1>
           </div>
           <div className="flex items-center space-x-2">
+            <ModeToggle />
             <Button
               variant="ghost"
               size="icon"

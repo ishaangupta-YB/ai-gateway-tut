@@ -56,8 +56,6 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
   };
  
 
-   
-
   const handleMessageSend = (text: string) => {
     sendMessage(
       { text },
