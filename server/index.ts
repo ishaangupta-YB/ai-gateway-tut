@@ -90,7 +90,6 @@ app.post('/api/chat', async (req, res) => {
             system: 'You are a helpful assistant that can answer questions and help with tasks',
         });
 
-        console.log('Starting optimal stream with messages, reasoning & sources...');
 
         // Use pipeUIMessageStreamToResponse for optimal Express streaming
         // This handles messages, reasoning, and sources automatically

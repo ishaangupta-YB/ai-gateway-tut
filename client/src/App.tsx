@@ -197,7 +197,7 @@ const App = () => {
                   </div>
                 </div>
               ) : (
-                <div className={`flex h-full overflow-x-auto overflow-y-hidden${
+                <div className={`flex h-full overflow-x-auto overflow-y-hidden custom-scrollbar ${
                   selectedModels.length === 1 ? 'justify-center' : ''
                 }`}>
                   {selectedModels.map((modelName) => (
