@@ -1,13 +1,6 @@
 'use client';
 
 import {
-  Conversation,
-  ConversationContent,
-  ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
-import { Message, MessageContent } from '@/components/ai-elements/message';
-import {
   PromptInput,
   PromptInputActionAddAttachments,
   PromptInputActionMenu,
@@ -18,50 +11,24 @@ import {
   PromptInputBody,
   PromptInputButton,
   type PromptInputMessage,
-  PromptInputModelSelect,
-  PromptInputModelSelectContent,
-  PromptInputModelSelectItem,
-  PromptInputModelSelectTrigger,
-  PromptInputModelSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input';
-import {
-  Actions,
-  Action,
-} from '@/components/ai-elements/actions';
-import { RefreshCcwIcon, CopyIcon, GlobeIcon, ThumbsUpIcon, ThumbsDownIcon, MessageSquare } from 'lucide-react';
-import { Fragment, useEffect, useState } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
-import { Response } from '@/components/ai-elements/response';
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from '@/components/ai-elements/sources';
-import {
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Loader } from '@/components/ai-elements/loader';
-import { ConversationEmptyState } from '@/components/ai-elements/conversation';
+import { GlobeIcon } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import Navbar from '@/components/Navbar';
+import ModelSettings from '@/components/ModelSettings';
+import ChatInterface, { type ChatInterfaceRef } from '@/components/ChatInterface';
 
 const App = () => {
   const [input, setInput] = useState('');
-  const [model, setModel] = useState<string>('');
-  const [models, setModels] = useState<string[]>([]);
+  const [models, setModels] = useState<any[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [webSearch, setWebSearch] = useState(false);
-  const { messages, sendMessage, status, regenerate, stop, setMessages, error, clearError } = useChat({
-    transport: new DefaultChatTransport({
-      api: 'http://localhost:3001/api/chat',
-    }),
-    // experimental_throttle: 100,
-  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const chatInterfaceRefs = useRef<{ [key: string]: ChatInterfaceRef | null }>({});
 
   useEffect(() => {
     console.log('fetching models');
@@ -69,8 +36,9 @@ const App = () => {
       const res = await fetch('http://localhost:3001/api/models')
       const data = await res.json();
       setModels(data.models);
+      // Set default model selection - select first available model
       if (data.models && data.models.length > 0) {
-        setModel(data.models[0].name);
+        setSelectedModels([data.models[0].name]);
       }
     }
     fetchModels();
@@ -84,218 +52,122 @@ const App = () => {
       return;
     }
 
-    sendMessage(
-      {
-        text: message.text || 'Sent with attachments',
-        files: message.files
-      },
-      {
-        body: {
-          model: model,
-          webSearch: webSearch,
-        },
-      },
-    );
+    const messageText = message.text || 'Sent with attachments';
+
+    // Send message to all selected chat interfaces
+    selectedModels.forEach(modelName => {
+      const ref = chatInterfaceRefs.current[modelName];
+      if (ref) {
+        ref.sendMessage(messageText);
+      }
+    });
+
     setInput('');
   };
 
-  const handleLike = (messageIndex: number) => {
-    console.log('Like', messageIndex);
+  const handleMessageSent = (text: string) => {
+    // This callback will be used to sync between interfaces if needed
+    console.log('Message sent:', text);
   };
-
-  const handleDislike = (messageIndex: number) => {
-    console.log('Dislike', messageIndex);
-  };
-
-  const suggestions = [
-    'What are the latest news in NYC?',
-    'Explain quantum computing in simple terms',
-    'Help me write a professional email',
-    'What are the best practices for React development?',
-  ];
-
-  const handleSuggestionClick = (suggestion: string) => {
-    sendMessage(
-      { text: suggestion },
-      {
-        body: {
-          model: model,
-          webSearch: webSearch,
-        },
-      },
-    );
-  };
-
 
   return (
-    <div className="min-h-screen w-full">
-      {/* Main Chat Area - Uses browser scrolling */}
-      <div className="max-w-4xl mx-auto px-6 py-6 pb-32">
-        <Conversation className="relative w-full" style={{ height: '500px' }}>
-          <ConversationContent>
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-full space-y-6">
-                <ConversationEmptyState
-                  icon={<MessageSquare className="size-12" />}
-                  title="Start a conversation"
-                  description="Choose a suggestion below or type your own message"
-                />
-                <Suggestions>
-                  {suggestions.map((suggestion) => (
-                    <Suggestion
-                      key={suggestion}
-                      onClick={handleSuggestionClick}
-                      suggestion={suggestion}
-                    />
-                  ))}
-                </Suggestions>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {messages.map((message, messageIndex) => (
-                  <div key={message.id}>
-                    {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                      <Sources>
-                        <SourcesTrigger
-                          count={
-                            message.parts.filter(
-                              (part) => part.type === 'source-url',
-                            ).length
-                          }
-                        />
-                        {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                          <SourcesContent key={`${message.id}-${i}`}>
-                            <Source
-                              key={`${message.id}-${i}`}
-                              href={part.url}
-                              title={part.url}
-                            />
-                          </SourcesContent>
-                        ))}
-                      </Sources>
-                    )}
-                    {message.parts.map((part, i) => {
-                      switch (part.type) {
-                        case 'text':
-                          return (
-                            <Fragment key={`${message.id}-${i}`}>
-                              <Message from={message.role}>
-                                <MessageContent>
-                                  <Response>{part.text}</Response>
-                                </MessageContent>
-                              </Message>
-                            </Fragment>
-                          );
-                        case 'reasoning':
-                          return (
-                            <Reasoning
-                              key={`${message.id}-${i}`}
-                              className="w-full"
-                              isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
-                            >
-                              <ReasoningTrigger />
-                              <ReasoningContent>{part.text}</ReasoningContent>
-                            </Reasoning>
-                          );
-                        default:
-                          return null;
-                      }
-                    })}
-                    {message.role === 'assistant' && (
-                      <Actions className="mt-2">
-                        <Action
-                          onClick={() => regenerate()}
-                          label="Retry"
-                        >
-                          <RefreshCcwIcon className="size-3" />
-                        </Action>
-                        <Action label="Like" onClick={() => handleLike(messageIndex)}>
-                          <ThumbsUpIcon className="size-4" />
-                        </Action>
-                        <Action label="Dislike" onClick={() => handleDislike(messageIndex)}>
-                          <ThumbsDownIcon className="size-4" />
-                        </Action>
-                        <Action
-                          onClick={() => {
-                            const textPart = message.parts.find((p: any) => p.type === 'text');
-                            if (textPart && 'text' in textPart) {
-                              navigator.clipboard.writeText(textPart.text);
-                            }
-                          }}
-                          label="Copy"
-                        >
-                          <CopyIcon className="size-3" />
-                        </Action>
-                      </Actions>
-                    )}
-                  </div>
-                ))}
-                {status === 'submitted' && <Loader />}
-              </div>
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
-      </div>
+    <div className="h-screen w-full flex flex-col overflow-hidden">
+      <Navbar onSettingsClick={() => setIsSettingsOpen(true)} />
 
-      {/* Fixed Input Area at Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t">
-        <div className="max-w-4xl mx-auto p-6">
-          <PromptInput onSubmit={handleSubmit} globalDrop multiple>
-            <PromptInputBody>
-              <PromptInputAttachments>
-                {(attachment) => <PromptInputAttachment data={attachment} />}
-              </PromptInputAttachments>
-              <PromptInputTextarea
-                onChange={(e) => setInput(e.target.value)}
-                value={input}
-              />
-            </PromptInputBody>
-            <PromptInputToolbar>
-              <PromptInputTools>
-                <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger />
-                  <PromptInputActionMenuContent>
-                    <PromptInputActionAddAttachments />
-                  </PromptInputActionMenuContent>
-                </PromptInputActionMenu>
-                <PromptInputButton
-                  variant={webSearch ? 'default' : 'ghost'}
-                  onClick={() => setWebSearch(!webSearch)}
-                >
-                  <GlobeIcon size={16} />
-                  <span>Search</span>
-                </PromptInputButton>
-                {status === 'streaming' && (
-                  <PromptInputButton
-                    variant="destructive"
-                    onClick={() => stop()}
-                  >
-                    Stop
-                  </PromptInputButton>
-                )}
-                <PromptInputModelSelect
-                  onValueChange={(value) => {
-                    setModel(value);
+      <ModelSettings
+        isOpen={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        models={models}
+        selectedModels={selectedModels}
+        onSelectedModelsChange={setSelectedModels}
+      />
+
+      {/* Main Content Container - Takes remaining space */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {/* Chat Area - Scrollable content */}
+        <div className="flex-1 overflow-hidden">
+          {selectedModels.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-4">
+                <h2 className="text-xl font-semibold text-muted-foreground">No models selected</h2>
+                <p className="text-muted-foreground">Please select at least one model from settings to start chatting</p>
+              </div>
+            </div>
+          ) : (
+            <div className={`flex h-full overflow-x-auto overflow-y-hidden custom-scrollbar ${
+              selectedModels.length === 1 ? 'justify-center' : ''
+            }`}>
+              {selectedModels.map((modelName) => (
+                <ChatInterface
+                  key={modelName}
+                  model={modelName}
+                  webSearch={webSearch}
+                  onSendMessage={handleMessageSent}
+                  totalModels={selectedModels.length}
+                  ref={(ref) => {
+                    chatInterfaceRefs.current[modelName] = ref;
                   }}
-                  value={model}
-                >
-                  <PromptInputModelSelectTrigger>
-                    <PromptInputModelSelectValue />
-                  </PromptInputModelSelectTrigger>
-                  <PromptInputModelSelectContent>
-                    {models.map((model: any) => (
-                      <PromptInputModelSelectItem key={model.id} value={model.name}>
-                        {model.name}
-                      </PromptInputModelSelectItem>
-                    ))}
-                  </PromptInputModelSelectContent>
-                </PromptInputModelSelect>
-              </PromptInputTools>
-              <PromptInputSubmit disabled={!input && status !== 'streaming'} status={status} />
-            </PromptInputToolbar>
-          </PromptInput>
+                />
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Fixed Input Area at Bottom - Always visible */}
+        {selectedModels.length > 0 && (
+          <div className="flex-shrink-0 border-t bg-background">
+            <div className="max-w-full mx-auto p-6">
+              <PromptInput onSubmit={handleSubmit} globalDrop multiple>
+                <PromptInputBody>
+                  <PromptInputAttachments>
+                    {(attachment) => <PromptInputAttachment data={attachment} />}
+                  </PromptInputAttachments>
+                  <PromptInputTextarea
+                    onChange={(e) => setInput(e.target.value)}
+                    value={input}
+                    placeholder={`Send message to selected models`}
+                  />
+                </PromptInputBody>
+                <PromptInputToolbar>
+                  <PromptInputTools>
+                    <PromptInputActionMenu>
+                      <PromptInputActionMenuTrigger />
+                      <PromptInputActionMenuContent>
+                        <PromptInputActionAddAttachments />
+                      </PromptInputActionMenuContent>
+                    </PromptInputActionMenu>
+                    <PromptInputButton
+                      variant={webSearch ? 'default' : 'ghost'}
+                      onClick={() => setWebSearch(!webSearch)}
+                    >
+                      <GlobeIcon size={16} />
+                      <span>Search</span>
+                    </PromptInputButton>
+                    {/* Commented out model selector as requested */}
+                    {/* <PromptInputModelSelect
+                      onValueChange={(value) => {
+                        setModel(value);
+                      }}
+                      value={model}
+                    >
+                      <PromptInputModelSelectTrigger>
+                        <PromptInputModelSelectValue />
+                      </PromptInputModelSelectTrigger>
+                      <PromptInputModelSelectContent>
+                        {models.map((model: any) => (
+                          <PromptInputModelSelectItem key={model.id} value={model.name}>
+                            {model.name}
+                          </PromptInputModelSelectItem>
+                        ))}
+                      </PromptInputModelSelectContent>
+                    </PromptInputModelSelect> */}
+                  </PromptInputTools>
+                  <PromptInputSubmit disabled={!input} />
+                </PromptInputToolbar>
+              </PromptInput>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
