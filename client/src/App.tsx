@@ -131,106 +131,111 @@ const App = () => {
     <div className="min-h-screen w-full">
       {/* Main Chat Area - Uses browser scrolling */}
       <div className="max-w-4xl mx-auto px-6 py-6 pb-32">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-screen space-y-6">
-            <ConversationEmptyState
-              icon={<MessageSquare className="size-12" />}
-              title="Start a conversation"
-              description="Choose a suggestion below or type your own message"
-            />
-            <Suggestions>
-              {suggestions.map((suggestion) => (
-                <Suggestion
-                  key={suggestion}
-                  onClick={handleSuggestionClick}
-                  suggestion={suggestion}
+        <Conversation className="relative w-full" style={{ height: '500px' }}>
+          <ConversationContent>
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-full space-y-6">
+                <ConversationEmptyState
+                  icon={<MessageSquare className="size-12" />}
+                  title="Start a conversation"
+                  description="Choose a suggestion below or type your own message"
                 />
-              ))}
-            </Suggestions>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {messages.map((message, messageIndex) => (
-              <div key={message.id}>
-                {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === 'source-url',
-                        ).length
-                      }
+                <Suggestions>
+                  {suggestions.map((suggestion) => (
+                    <Suggestion
+                      key={suggestion}
+                      onClick={handleSuggestionClick}
+                      suggestion={suggestion}
                     />
-                    {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
-                      <SourcesContent key={`${message.id}-${i}`}>
-                        <Source
-                          key={`${message.id}-${i}`}
-                          href={part.url}
-                          title={part.url}
-                        />
-                      </SourcesContent>
-                    ))}
-                  </Sources>
-                )}
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case 'text':
-                      return (
-                        <Fragment key={`${message.id}-${i}`}>
-                          <Message from={message.role}>
-                            <MessageContent>
-                              <Response>{part.text}</Response>
-                            </MessageContent>
-                          </Message>
-                        </Fragment>
-                      );
-                    case 'reasoning':
-                      return (
-                        <Reasoning
-                          key={`${message.id}-${i}`}
-                          className="w-full"
-                          isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
-                        >
-                          <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
-                        </Reasoning>
-                      );
-                    default:
-                      return null;
-                  }
-                })}
-                {message.role === 'assistant' && (
-                  <Actions className="mt-2">
-                    <Action
-                      onClick={() => regenerate()}
-                      label="Retry"
-                    >
-                      <RefreshCcwIcon className="size-3" />
-                    </Action>
-                    <Action label="Like" onClick={() => handleLike(messageIndex)}>
-                      <ThumbsUpIcon className="size-4" />
-                    </Action>
-                    <Action label="Dislike" onClick={() => handleDislike(messageIndex)}>
-                      <ThumbsDownIcon className="size-4" />
-                    </Action>
-                    <Action
-                      onClick={() => {
-                        const textPart = message.parts.find((p: any) => p.type === 'text');
-                        if (textPart && 'text' in textPart) {
-                          navigator.clipboard.writeText(textPart.text);
-                        }
-                      }}
-                      label="Copy"
-                    >
-                      <CopyIcon className="size-3" />
-                    </Action>
-                  </Actions>
-                )}
+                  ))}
+                </Suggestions>
               </div>
-            ))}
-            {status === 'submitted' && <Loader />}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-6">
+                {messages.map((message, messageIndex) => (
+                  <div key={message.id}>
+                    {message.role === 'assistant' && message.parts.filter((part) => part.type === 'source-url').length > 0 && (
+                      <Sources>
+                        <SourcesTrigger
+                          count={
+                            message.parts.filter(
+                              (part) => part.type === 'source-url',
+                            ).length
+                          }
+                        />
+                        {message.parts.filter((part) => part.type === 'source-url').map((part, i) => (
+                          <SourcesContent key={`${message.id}-${i}`}>
+                            <Source
+                              key={`${message.id}-${i}`}
+                              href={part.url}
+                              title={part.url}
+                            />
+                          </SourcesContent>
+                        ))}
+                      </Sources>
+                    )}
+                    {message.parts.map((part, i) => {
+                      switch (part.type) {
+                        case 'text':
+                          return (
+                            <Fragment key={`${message.id}-${i}`}>
+                              <Message from={message.role}>
+                                <MessageContent>
+                                  <Response>{part.text}</Response>
+                                </MessageContent>
+                              </Message>
+                            </Fragment>
+                          );
+                        case 'reasoning':
+                          return (
+                            <Reasoning
+                              key={`${message.id}-${i}`}
+                              className="w-full"
+                              isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                            >
+                              <ReasoningTrigger />
+                              <ReasoningContent>{part.text}</ReasoningContent>
+                            </Reasoning>
+                          );
+                        default:
+                          return null;
+                      }
+                    })}
+                    {message.role === 'assistant' && (
+                      <Actions className="mt-2">
+                        <Action
+                          onClick={() => regenerate()}
+                          label="Retry"
+                        >
+                          <RefreshCcwIcon className="size-3" />
+                        </Action>
+                        <Action label="Like" onClick={() => handleLike(messageIndex)}>
+                          <ThumbsUpIcon className="size-4" />
+                        </Action>
+                        <Action label="Dislike" onClick={() => handleDislike(messageIndex)}>
+                          <ThumbsDownIcon className="size-4" />
+                        </Action>
+                        <Action
+                          onClick={() => {
+                            const textPart = message.parts.find((p: any) => p.type === 'text');
+                            if (textPart && 'text' in textPart) {
+                              navigator.clipboard.writeText(textPart.text);
+                            }
+                          }}
+                          label="Copy"
+                        >
+                          <CopyIcon className="size-3" />
+                        </Action>
+                      </Actions>
+                    )}
+                  </div>
+                ))}
+                {status === 'submitted' && <Loader />}
+              </div>
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
       </div>
 
       {/* Fixed Input Area at Bottom */}
