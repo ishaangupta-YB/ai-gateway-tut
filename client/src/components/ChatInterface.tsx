@@ -5,13 +5,12 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation';
-import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
 import { Message, MessageContent } from '@/components/ai-elements/message';
 import {
   Actions,
   Action,
 } from '@/components/ai-elements/actions';
-import { RefreshCcwIcon, CopyIcon, ThumbsUpIcon, ThumbsDownIcon, MessageSquare } from 'lucide-react';
+import { RefreshCcwIcon, CopyIcon, ThumbsUpIcon, ThumbsDownIcon, MessageSquare, StopCircleIcon } from 'lucide-react';
 import { Fragment, forwardRef, useImperativeHandle } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -42,7 +41,7 @@ export interface ChatInterfaceRef {
 }
 
 const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model, webSearch, onSendMessage, totalModels = 1 }, ref) => {
-  const { messages, sendMessage, status, regenerate } = useChat({
+  const { messages, sendMessage, status, regenerate,stop } = useChat({
     transport: new DefaultChatTransport({
       api: 'http://localhost:3001/api/chat',
     }),
@@ -55,26 +54,9 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
   const handleDislike = (messageIndex: number) => {
     console.log('Dislike', messageIndex);
   };
+ 
 
-  const suggestions = [
-    'What are the latest news in NYC?',
-    'Explain quantum computing in simple terms',
-    'Help me write a professional email',
-    'What are the best practices for React development?',
-  ];
-
-  const handleSuggestionClick = (suggestion: string) => {
-    sendMessage(
-      { text: suggestion },
-      {
-        body: {
-          model: model,
-          webSearch: webSearch,
-        },
-      },
-    );
-    onSendMessage(suggestion);
-  };
+   
 
   const handleMessageSend = (text: string) => {
     sendMessage(
@@ -93,9 +75,8 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
     sendMessage: handleMessageSend,
   }));
 
-  // Calculate dynamic width based on number of models
   const getWidthClass = () => {
-    if (totalModels === 1) return 'w-full max-w-4xl';
+    if (totalModels === 1) return 'w-full';
     if (totalModels === 2) return 'w-1/2 min-w-[500px]';
     if (totalModels === 3) return 'w-1/3 min-w-[400px]';
     return 'w-[400px] min-w-[400px]'; // For 4+ models, use fixed width
@@ -104,7 +85,18 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
   return (
     <div className={`flex flex-col h-full border-r border-border last:border-r-0 ${getWidthClass()}`}>
       <div className="p-4 border-b border-border bg-muted/30 flex-shrink-0">
-        <h3 className="font-medium text-sm">{model}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium text-sm">{model}</h3>
+          {status === 'streaming' && (
+            <button
+              onClick={stop}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+            >
+              <StopCircleIcon className="size-3" />
+              Stop
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-hidden">
@@ -114,18 +106,8 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
               <div className="flex flex-col items-center justify-center min-h-full space-y-6">
                 <ConversationEmptyState
                   icon={<MessageSquare className="size-12" />}
-                  title="Start a conversation"
-                  description="Choose a suggestion below or type your own message"
-                />
-                <Suggestions>
-                  {suggestions.map((suggestion) => (
-                    <Suggestion
-                      key={suggestion}
-                      onClick={handleSuggestionClick}
-                      suggestion={suggestion}
-                    />
-                  ))}
-                </Suggestions>
+                  title="Start a conversation" 
+                /> 
               </div>
             ) : (
               <div className="space-y-6">

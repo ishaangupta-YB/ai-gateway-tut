@@ -36,9 +36,14 @@ const App = () => {
       const res = await fetch('http://localhost:3001/api/models')
       const data = await res.json();
       setModels(data.models);
-      // Set default model selection - select first available model
+      // Set default model selection - prefer Gemini Flash 2.5, fallback to first available
       if (data.models && data.models.length > 0) {
-        setSelectedModels([data.models[0].name]);
+        const geminiFlash = data.models.find((model: any) =>
+          model.name.includes("Gemini 2.0 Flash") ||
+          model.name.includes("Gemini 2.5 Flash")
+        ); 
+        // console.log(data.models);
+        setSelectedModels([geminiFlash ? geminiFlash.name : data.models[0].name]);
       }
     }
     fetchModels();
@@ -116,7 +121,7 @@ const App = () => {
         {/* Fixed Input Area at Bottom - Always visible */}
         {selectedModels.length > 0 && (
           <div className="flex-shrink-0 border-t bg-background">
-            <div className="max-w-full mx-auto p-6">
+            <div className="  max-w-3xl mx-auto p-6">
               <PromptInput onSubmit={handleSubmit} globalDrop multiple>
                 <PromptInputBody>
                   <PromptInputAttachments>

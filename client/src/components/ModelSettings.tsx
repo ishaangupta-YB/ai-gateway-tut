@@ -5,11 +5,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Button } from '@/components/ui/button';
-import { useMemo } from 'react';
+import { Input } from '@/components/ui/input';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 
 interface Model {
   id: string;
@@ -24,10 +25,6 @@ interface ModelSettingsProps {
   onSelectedModelsChange: (models: string[]) => void;
 }
 
-interface ModelsByProvider {
-  [provider: string]: Model[];
-}
-
 const ModelSettings = ({
   isOpen,
   onOpenChange,
@@ -35,15 +32,25 @@ const ModelSettings = ({
   selectedModels,
   onSelectedModelsChange,
 }: ModelSettingsProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filter models based on search term
+  const filteredModels = useMemo(() => {
+    if (!searchTerm) return models;
+    return models.filter(model =>
+      model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [models, searchTerm]);
+
   // Group models by provider
   const modelsByProvider = useMemo(() => {
-    const grouped: ModelsByProvider = {};
+    const grouped: { [provider: string]: Model[] } = {};
 
-    models.forEach(model => {
-      // Extract provider from model ID (e.g., 'openai/gpt-4o' -> 'openai')
+    filteredModels.forEach(model => {
       const provider = model.id.includes('/')
         ? model.id.split('/')[0]
-        : 'Other';
+        : 'custom';
 
       if (!grouped[provider]) {
         grouped[provider] = [];
@@ -51,118 +58,102 @@ const ModelSettings = ({
       grouped[provider].push(model);
     });
 
-    return grouped;
-  }, [models]);
+    // Sort providers: gemini, openai, anthropic, alibaba, then alphabetically
+    const providerOrder = ['google', 'openai', 'anthropic', 'alibaba'];
+    const sortedProviders = Object.keys(grouped).sort((a, b) => {
+      const aIndex = providerOrder.indexOf(a);
+      const bIndex = providerOrder.indexOf(b);
 
-  // Sort providers for consistent display
-  const sortedProviders = useMemo(() => {
-    return Object.keys(modelsByProvider).sort((a, b) => {
-      // Put "Other" at the end
-      if (a === 'Other') return 1;
-      if (b === 'Other') return -1;
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
       return a.localeCompare(b);
     });
-  }, [modelsByProvider]);
+
+    return { grouped, sortedProviders };
+  }, [filteredModels]);
   const handleModelToggle = (modelName: string) => {
     const isSelected = selectedModels.includes(modelName);
     if (isSelected) {
-      // Prevent deselecting if it's the only selected model
       if (selectedModels.length > 1) {
         onSelectedModelsChange(selectedModels.filter(m => m !== modelName));
       }
     } else {
-      onSelectedModelsChange([...selectedModels, modelName]);
+      if (selectedModels.length < 6) {
+        onSelectedModelsChange([...selectedModels, modelName]);
+      }
     }
   };
 
-  const handleSelectAll = () => {
-    if (selectedModels.length === models.length) {
-      // When deselecting all, keep at least one model selected (first one)
-      onSelectedModelsChange([models[0]?.name].filter(Boolean));
-    } else {
-      onSelectedModelsChange(models.map(m => m.name));
-    }
-  };
+  const isModelSelected = (modelName: string) => selectedModels.includes(modelName);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Select AI Models</DialogTitle>
-          <DialogDescription>
-            Choose the AI models you want to compare. You can select multiple models to see their responses side by side.
-          </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={onOpenChange} >
+      <DialogContent className="flex flex-col w-full p-0 md:max-h-[500px]  md:max-w-[700px] lg:max-w-[800px] border border-border bg-popover">
+        <DialogHeader className="space-y-4 p-6 border-b border-border">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-semibold text-popover-foreground">
+              Select up to 6 models
+            </DialogTitle>
+            <DialogClose 
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            > 
+            </DialogClose>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Selected: {selectedModels.length}/6
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search models..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col space-y-4">
-          <div className="flex items-center justify-between px-6">
-            <h3 className="text-sm font-medium">Available Models</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSelectAll}
-            >
-              {selectedModels.length === models.length ? 'Deselect All' : 'Select All'}
-            </Button>
-          </div>
-
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto px-6 space-y-6 custom-scrollbar">
-            {sortedProviders.map((provider) => (
-              <div key={provider} className="space-y-3">
-                <h4 className="text-sm font-semibold text-primary capitalize sticky top-0 bg-background py-2 border-b">
-                  {provider === 'Other' ? 'Other Models' : `${provider} Models`}
-                </h4>
-                <div className="space-y-2">
-                  {modelsByProvider[provider].map((model) => {
-                    const isSelected = selectedModels.includes(model.name);
-                    const isLastSelected = isSelected && selectedModels.length === 1;
-
-                    return (
-                      <div
-                        key={model.id}
-                        className={`flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors ${
-                          isLastSelected ? 'bg-blue-50 border-blue-200' : ''
-                        }`}
-                      >
-                        <Checkbox
-                          id={model.id}
-                          checked={isSelected}
-                          onChange={() => handleModelToggle(model.name)}
-                        />
-                        <div className="flex-1">
-                          <label
-                            htmlFor={model.id}
-                            className="text-sm font-medium cursor-pointer"
-                          >
-                            {model.name}
-                            {isLastSelected && (
-                              <span className="ml-2 text-xs text-blue-600 font-normal">(Required)</span>
-                            )}
-                          </label>
-                        </div>
-                      </div>
-                    );
-                  })}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {modelsByProvider.sortedProviders.map((provider) => (
+            <div key={provider}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-foreground capitalize">
+                  {provider === 'google' ? 'Google (Gemini)' : provider}
+                </h3>
+                <div className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+                  {modelsByProvider.grouped[provider].length}
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Selected models summary */}
-          <div className="px-6 pb-6 space-y-3">
-            {selectedModels.length === 0 && (
-              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                Select at least one model to start comparing responses.
+              <div className="grid grid-cols-2 gap-3">
+                {modelsByProvider.grouped[provider].map((model) => (
+                  <div
+                    key={model.id}
+                    onClick={() => handleModelToggle(model.name)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                      isModelSelected(model.name)
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-muted-foreground'
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isModelSelected(model.name)}
+                      onCheckedChange={() => handleModelToggle(model.name)}
+                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <span className="text-sm font-medium text-card-foreground truncate">
+                      {model.name}
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
-
-            {selectedModels.length > 0 && (
-              <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
-                {selectedModels.length} model{selectedModels.length === 1 ? '' : 's'} selected: {selectedModels.join(', ')}
-              </div>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
