@@ -85,7 +85,7 @@ app.post('/api/chat', async (req, res) => {
         res.setHeader('Access-Control-Allow-Headers', '*');
 
         const result = streamText({
-            model: gateway(selectedModel),
+            model: gateway(selectedModel), 
             messages: convertToModelMessages(messages),
             system: 'You are a helpful assistant that can answer questions and help with tasks',
         });
