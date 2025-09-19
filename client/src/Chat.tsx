@@ -59,6 +59,7 @@ const Chat = () => {
     const fetchModels = async () => {
       const res = await fetch('http://localhost:3001/api/models')
       const data = await res.json();
+      // console.log(data.models);
       setModels(data.models);
       // Set default model selection - prefer Gemini Flash 2.5, fallback to first available
       if (data.models && data.models.length > 0) {

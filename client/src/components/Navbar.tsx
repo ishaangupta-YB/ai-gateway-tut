@@ -1,9 +1,10 @@
 'use client';
 
-import { Settings } from 'lucide-react';
+import { Settings, TrendingUpIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ModeToggle } from '@/components/mode-toggle';
+import RatingHistoryModal from '@/components/RatingHistoryModal';
 
 interface NavbarProps {
   onSettingsClick: () => void;
@@ -20,6 +21,17 @@ const Navbar = ({ onSettingsClick }: NavbarProps) => {
           </div>
           <div className="flex items-center space-x-2">
             <ModeToggle />
+            <RatingHistoryModal>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                title="View Rating History"
+              >
+                <TrendingUpIcon className="h-4 w-4" />
+                <span className="sr-only">Rating History</span>
+              </Button>
+            </RatingHistoryModal>
             <Button
               variant="ghost"
               size="icon"

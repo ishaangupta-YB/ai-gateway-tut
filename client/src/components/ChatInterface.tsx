@@ -10,8 +10,8 @@ import {
   Actions,
   Action,
 } from '@/components/ai-elements/actions';
-import { RefreshCcwIcon, CopyIcon, ThumbsUpIcon, ThumbsDownIcon, MessageSquare, StopCircleIcon } from 'lucide-react';
-import { Fragment, forwardRef, useImperativeHandle } from 'react';
+import { RefreshCcwIcon, CopyIcon, ThumbsUpIcon, ThumbsDownIcon, MessageSquare, StopCircleIcon, AlertCircleIcon } from 'lucide-react';
+import { Fragment, forwardRef, useImperativeHandle, useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Response } from '@/components/ai-elements/response';
@@ -36,23 +36,132 @@ interface ChatInterfaceProps {
   totalModels?: number;
 }
 
+interface ResponseRating {
+  messageId: string;
+  model: string;
+  rating: 'like' | 'dislike';
+  timestamp: number;
+  messageText: string;
+}
+
 export interface ChatInterfaceRef {
   sendMessage: (text: string) => void;
 }
 
 const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model, webSearch, onSendMessage, totalModels = 1 }, ref) => {
-  const { messages, sendMessage, status, regenerate,stop } = useChat({
+  const [ratings, setRatings] = useState<Map<string, 'like' | 'dislike'>>(new Map());
+
+  const { messages, sendMessage, status, regenerate, stop, error } = useChat({
     transport: new DefaultChatTransport({
       api: 'http://localhost:3001/api/chat',
     }),
+    onError: error => {
+      console.error('Chat error:', error);
+    },
   });
 
+  // Load ratings from localStorage on mount
+  useEffect(() => {
+    const savedRatings = localStorage.getItem('ai-chat-ratings');
+    if (savedRatings) {
+      try {
+        const parsed: ResponseRating[] = JSON.parse(savedRatings);
+        const ratingsMap = new Map<string, 'like' | 'dislike'>();
+        parsed.forEach(rating => {
+          if (rating.model === model) {
+            ratingsMap.set(rating.messageId, rating.rating);
+          }
+        });
+        setRatings(ratingsMap);
+      } catch (error) {
+        console.error('Error loading ratings from localStorage:', error);
+      }
+    }
+  }, [model]);
+
+  const saveRatingToStorage = (messageId: string, rating: 'like' | 'dislike', messageText: string) => {
+    try {
+      const existingRatings = localStorage.getItem('ai-chat-ratings');
+      let ratings: ResponseRating[] = existingRatings ? JSON.parse(existingRatings) : [];
+
+      // Remove existing rating for this message and model
+      ratings = ratings.filter(r => !(r.messageId === messageId && r.model === model));
+
+      // Add new rating
+      ratings.push({
+        messageId,
+        model,
+        rating,
+        timestamp: Date.now(),
+        messageText: messageText.substring(0, 100) // Store first 100 chars for reference
+      });
+
+      localStorage.setItem('ai-chat-ratings', JSON.stringify(ratings));
+    } catch (error) {
+      console.error('Error saving rating to localStorage:', error);
+    }
+  };
+
   const handleLike = (messageIndex: number) => {
-    console.log('Like', messageIndex);
+    const message = messages[messageIndex];
+    if (message && message.role === 'assistant') {
+      const textPart = message.parts.find((p: any) => p.type === 'text');
+      if (textPart && 'text' in textPart) {
+        const newRating = ratings.get(message.id) === 'like' ? undefined : 'like';
+        const newRatings = new Map(ratings);
+
+        if (newRating) {
+          newRatings.set(message.id, newRating);
+          saveRatingToStorage(message.id, newRating, textPart.text);
+        } else {
+          newRatings.delete(message.id);
+          // Remove from localStorage
+          try {
+            const existingRatings = localStorage.getItem('ai-chat-ratings');
+            if (existingRatings) {
+              let ratings: ResponseRating[] = JSON.parse(existingRatings);
+              ratings = ratings.filter(r => !(r.messageId === message.id && r.model === model));
+              localStorage.setItem('ai-chat-ratings', JSON.stringify(ratings));
+            }
+          } catch (error) {
+            console.error('Error removing rating from localStorage:', error);
+          }
+        }
+
+        setRatings(newRatings);
+      }
+    }
   };
 
   const handleDislike = (messageIndex: number) => {
-    console.log('Dislike', messageIndex);
+    const message = messages[messageIndex];
+    if (message && message.role === 'assistant') {
+      const textPart = message.parts.find((p: any) => p.type === 'text');
+      if (textPart && 'text' in textPart) {
+        const newRating = ratings.get(message.id) === 'dislike' ? undefined : 'dislike';
+        const newRatings = new Map(ratings);
+
+        if (newRating) {
+          newRatings.set(message.id, newRating);
+          saveRatingToStorage(message.id, newRating, textPart.text);
+        } else {
+          newRatings.delete(message.id);
+          // Remove from localStorage
+          try {
+            const existingRatings = localStorage.getItem('ai-chat-ratings');
+            if (existingRatings) {
+              let ratings: ResponseRating[] = JSON.parse(existingRatings);
+              ratings = ratings.filter(r => !(r.messageId === message.id && r.model === model));
+              localStorage.setItem('ai-chat-ratings', JSON.stringify(ratings));
+            }
+          } catch (error) {
+            console.error('Error removing rating from localStorage:', error);
+          }
+        }
+
+        setRatings(newRatings);
+      }
+    }
   };
  
 
@@ -166,11 +275,19 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
                         >
                           <RefreshCcwIcon className="size-3" />
                         </Action>
-                        <Action label="Like" onClick={() => handleLike(messageIndex)}>
-                          <ThumbsUpIcon className="size-4" />
+                        <Action
+                          label={ratings.get(message.id) === 'like' ? 'Liked' : 'Like'}
+                          onClick={() => handleLike(messageIndex)}
+                          className={ratings.get(message.id) === 'like' ? 'text-green-600' : ''}
+                        >
+                          <ThumbsUpIcon className={`size-4 ${ratings.get(message.id) === 'like' ? 'fill-current' : ''}`} />
                         </Action>
-                        <Action label="Dislike" onClick={() => handleDislike(messageIndex)}>
-                          <ThumbsDownIcon className="size-4" />
+                        <Action
+                          label={ratings.get(message.id) === 'dislike' ? 'Disliked' : 'Dislike'}
+                          onClick={() => handleDislike(messageIndex)}
+                          className={ratings.get(message.id) === 'dislike' ? 'text-red-600' : ''}
+                        >
+                          <ThumbsDownIcon className={`size-4 ${ratings.get(message.id) === 'dislike' ? 'fill-current' : ''}`} />
                         </Action>
                         <Action
                           onClick={() => {
@@ -188,6 +305,17 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({ model,
                   </div>
                 ))}
                 {status === 'submitted' && <Loader />}
+                {error && (
+                  <div className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+                    <AlertCircleIcon className="size-5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">Rate limit exceeded</div>
+                      <div className="text-xs text-yellow-600 mt-1">
+                        Please try again after some time.
+                      </div> 
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </ConversationContent>
