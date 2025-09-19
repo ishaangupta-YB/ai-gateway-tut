@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HeroHighlight, Highlight } from '@/components/ui/hero-highlight';
+import { Spotlight } from '@/components/ui/spotlight-new';
 import { CometCard } from '@/components/ui/comet-card';
 import { Compare } from '@/components/ui/compare';
 import { HoverBorderGradient } from '@/components/ui/hover-border-gradient';
@@ -55,12 +56,12 @@ const Landing = () => {
       <Dialog open={isDemoModalOpen} onOpenChange={setIsDemoModalOpen}>
         <DialogTrigger asChild>
           <HoverBorderGradient
-            containerClassName="rounded-lg"
+            containerClassName="rounded-lg w-full sm:w-auto"
             as="button"
-            className="bg-background cursor-pointer hover:bg-background/90 text-foreground border border-border flex items-center space-x-2 text-base sm:text-lg px-4 sm:px-8 md:px-12 py-3"
+            className="bg-background cursor-pointer hover:bg-background/90 text-foreground border border-border flex items-center justify-center space-x-2 text-sm sm:text-base lg:text-lg px-6 sm:px-8 md:px-10 lg:px-12 py-2.5 sm:py-3 w-full sm:w-auto min-w-0"
           >
-            <PlayCircle className="h-5 w-5" />
-            <span>Watch Demo</span>
+            <PlayCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <span className="truncate">Watch Demo</span>
           </HoverBorderGradient>
         </DialogTrigger>
         <DialogContent className="w-[95vw] max-w-5xl h-[85vh] p-0 border-0 bg-transparent">
@@ -226,6 +227,7 @@ const Landing = () => {
 
       {/* Hero Section */}
       <HeroHighlight>
+        <Spotlight />
         <motion.h1
           initial={{
             opacity: 0,
@@ -251,19 +253,21 @@ const Landing = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mt-8"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mt-6 sm:mt-8 px-4"
         >
-          <Link to="/chat">
+          <Link to="/chat" className="w-full sm:w-auto">
             <HoverBorderGradient
-              containerClassName="rounded-lg"
+              containerClassName="rounded-lg w-full sm:w-auto"
               as="button"
-              className="bg-primary text-primary-foreground flex items-center space-x-2 text-base sm:text-lg px-4 sm:px-8 md:px-12 py-3 hover:bg-primary/90 cursor-pointer"
+              className="bg-primary text-primary-foreground flex items-center justify-center space-x-2 text-sm sm:text-base lg:text-lg px-6 sm:px-8 md:px-10 lg:px-12 py-2.5 sm:py-3 hover:bg-primary/90 cursor-pointer w-full sm:w-auto min-w-0"
             >
-              <span>Get Started</span>
-              <ArrowRight className=" ml-2 h-5 w-5" /> 
+              <span className="truncate">Get Started</span>
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             </HoverBorderGradient>
           </Link>
-          <DemoVideoModal />
+          <div className="w-full sm:w-auto">
+            <DemoVideoModal />
+          </div>
         </motion.div>
       </HeroHighlight>
 
@@ -297,41 +301,54 @@ const Landing = () => {
         <GlowingEffectDemo />
       </section>
 
+      {/* About Me & Comet Card Section */}
+      <section className="container px-4 py-24 mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="space-y-6 order-2 lg:order-1">
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                Hi, I'm Ishaan Gupta
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                I Build Great Projects
+              </p>
+            </div>
+          </div>
 
-      {/* Comet Card Demo Section */}
-      <section className="container px-4 py-4 mx-auto">
-        <div className="flex justify-center">
-          <CometCard>
-            <button
-              type="button"
-              className="my-10 flex w-72 sm:w-80 cursor-pointer flex-col items-stretch rounded-[16px] border-0 bg-card p-2 md:my-20 md:p-4"
-              aria-label="View invite F7RA"
-              style={{
-                transformStyle: "preserve-3d",
-                transform: "none",
-                opacity: 1,
-              }}
-            >
-              <div className="mx-2 flex-1">
-                <div className="relative mt-2 aspect-[3/4] w-full">
-                  <img
-                    loading="lazy"
-                    className="absolute inset-0 h-full w-full rounded-[16px] bg-muted object-cover"
-                    alt="Invite background"
-                    src="https://images.unsplash.com/photo-1505506874110-6a7a69069a08?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                    style={{
-                      boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
-                      opacity: 1,
-                    }}
-                  />
+          {/* Comet Card - Right Side */}
+          <div className="flex justify-center lg:justify-end order-1 lg:order-2">
+            <CometCard>
+              <button
+                type="button"
+                className="my-6 lg:my-10 flex w-72 sm:w-80 cursor-pointer flex-col items-stretch rounded-[16px] border-0 bg-card p-2 md:p-4"
+                aria-label="View invite F7RA"
+                style={{
+                  transformStyle: "preserve-3d",
+                  transform: "none",
+                  opacity: 1,
+                }}
+              >
+                <div className="mx-2 flex-1">
+                  <div className="relative mt-2 aspect-[3/4] w-full">
+                    <img
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full rounded-[16px] bg-muted object-cover"
+                      alt="Ishaan Gupta"
+                      src="https://images.unsplash.com/photo-1505506874110-6a7a69069a08?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                      style={{
+                        boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
+                        opacity: 1,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="mt-2 flex flex-shrink-0 items-center justify-between p-4 font-mono text-card-foreground">
-                <div className="text-xs">Ishaan Gupta</div>
-                <div className="text-xs text-muted-foreground opacity-50">#noob</div>
-              </div>
-            </button>
-          </CometCard>
+                <div className="mt-2 flex flex-shrink-0 items-center justify-between p-4 font-mono text-card-foreground">
+                  <div className="text-xs">Ishaan Gupta</div>
+                  <div className="text-xs text-muted-foreground opacity-50">#creator</div>
+                </div>
+              </button>
+            </CometCard>
+          </div>
         </div>
       </section>
 
